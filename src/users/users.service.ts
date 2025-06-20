@@ -1,26 +1,40 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { CreateUsersDto } from './dto/create-user.dto';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { DRIZZLE_ORM_TOKEN } from '../drizzle/drizzle.provider';
+import * as schema from '../db/schema';
+import { users } from '../db/schema';
+import { eq, count } from 'drizzle-orm';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(
+    @Inject(DRIZZLE_ORM_TOKEN) private db: NodePgDatabase<typeof schema>,
+  ) {}
+
+  async create(createUserDto: CreateUsersDto) {
+    const { name, email, password, role } = createUserDto;
+
+    const newUser = await this.db
+      .insert(users)
+      .values({
+        name,
+        email,
+        password,
+        role: role as 'applicant' | 'company',
+      })
+      .returning();
+    return newUser[0];
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findOneByEmail(email: string) {
+    const user = await this.db.select().from(users).where(eq(users.email, email));
+    return user[0];
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOneById(id: string) {
+    const user = await this.db.select().from(users).where(eq(users.id, id));
+    return user[0];
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
-  }
 }

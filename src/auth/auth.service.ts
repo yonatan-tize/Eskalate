@@ -41,7 +41,7 @@ export class AuthService {
             sub: foundUser.id,
             role: foundUser.role
         };
-        const jwt = await this.jwtService.signAsync(payLoad);
+        const jwt = await this.jwtService.signAsync(payLoad, { secret: process.env.JWT_SECRET });
 
         return { accessToken: jwt };
     };
@@ -49,7 +49,7 @@ export class AuthService {
     async validateUserByToken(token: string){
         try {
             console.log(token)
-            const payload = await this.jwtService.verifyAsync(token);
+            const payload = await this.jwtService.verifyAsync(token, {secret: process.env.JWT_SECRET});
             const user = await this.usersService.findOneById(payload.sub);
 
             if (!user) {

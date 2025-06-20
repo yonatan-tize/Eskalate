@@ -43,7 +43,6 @@ export class AuthService {
         };
         const jwt = await this.jwtService.signAsync(payLoad);
 
-        //return token
         return { accessToken: jwt };
     };
 
@@ -58,7 +57,7 @@ export class AuthService {
             }
 
             const { password, ...userWithoutPassword } = user;
-            return userWithoutPassword; // Return the user without the password field
+            return userWithoutPassword; 
         } catch (err) {
             throw new UnauthorizedException('Invalid token when parsing token');
         }

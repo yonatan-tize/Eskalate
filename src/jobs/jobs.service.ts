@@ -14,12 +14,25 @@ export class JobsService {
     @Inject(DRIZZLE_ORM_TOKEN) private db: NodePgDatabase<typeof schema>,
   ) {}
 
+  private async _findOne(id: string) {
+    const job = await this.db.select().from(jobs).where(eq(jobs.id, id));
+    if (!job.length) {
+      throw new NotFoundException('Job not found');
+    }
+    return job[0];
+  }
+
   async create(createJobDto: CreateJobDto, userId: string) {
     const newJob = await this.db
       .insert(jobs)
       .values({ ...createJobDto, createdBy: userId })
       .returning();
-    return newJob[0];
+    return {
+      Success: true,
+      Message: 'Job created successfully.',
+      Object: newJob[0],
+      Errors: null,
+    };
   }
 
   async findMyJobs(userId: string, { page = 1, pageSize = 10 }: FindJobsDto) {
@@ -47,23 +60,28 @@ export class JobsService {
       .where(eq(jobs.createdBy, userId));
 
     return {
-      page,
-      pageSize,
-      total: total[0].count,
-      data: companyJobs,
+      Success: true,
+      Message: 'Your jobs retrieved successfully.',
+      Object: companyJobs,
+      PageNumber: page,
+      PageSize: pageSize,
+      TotalSize: total[0].count,
+      Errors: null,
     };
   }
 
   async findOne(id: string) {
-    const job = await this.db.select().from(jobs).where(eq(jobs.id, id));
-    if (!job.length) {
-      throw new NotFoundException('Job not found');
-    }
-    return job[0];
+    const job = await this._findOne(id);
+    return {
+      Success: true,
+      Message: 'Job retrieved successfully.',
+      Object: job,
+      Errors: null,
+    };
   }
 
   async update(id: string, updateJobDto: UpdateJobDto, userId: string) {
-    const job = await this.findOne(id);
+    const job = await this._findOne(id);
     if (job.createdBy !== userId) {
       throw new UnauthorizedException('Unauthorized access');
     }
@@ -72,19 +90,35 @@ export class JobsService {
       .set(updateJobDto)
       .where(eq(jobs.id, id))
       .returning();
-    return updatedJob[0];
+    return {
+      Success: true,
+      Message: 'Job updated successfully.',
+      Object: updatedJob[0],
+      Errors: null,
+    };
   }
 
   async remove(id: string, userId: string) {
-    const job = await this.findOne(id);
+    const job = await this._findOne(id);
     if (job.createdBy !== userId) {
       throw new UnauthorizedException('Unauthorized access');
     }
     await this.db.delete(jobs).where(eq(jobs.id, id));
-    return { success: true, message: 'Job deleted successfully' };
+    return {
+      Success: true,
+      Message: 'Job deleted successfully.',
+      Object: null,
+      Errors: null,
+    };
   }
 
-  async findAll({ page = 1, pageSize = 10, title, location, companyName }: FindJobsDto) {
+  async findAll({
+    page = 1,
+    pageSize = 10,
+    title,
+    location,
+    companyName,
+  }: FindJobsDto) {
     const offset = (page - 1) * pageSize;
     const whereConditions: any[] = [];
     if (title) {
@@ -98,7 +132,14 @@ export class JobsService {
     }
 
     const allJobs = await this.db
-      .select()
+      .select({
+        id: jobs.id,
+        title: jobs.title,
+        description: jobs.description,
+        location: jobs.location,
+        createdAt: jobs.createdAt,
+        companyName: users.name,
+      })
       .from(jobs)
       .leftJoin(users, eq(jobs.createdBy, users.id))
       .where(and(...whereConditions))
@@ -112,10 +153,13 @@ export class JobsService {
       .where(and(...whereConditions));
 
     return {
-      page,
-      pageSize,
-      total: total[0].count,
-      data: allJobs.map((j) => j.jobs),
+      Success: true,
+      Message: 'Jobs retrieved successfully.',
+      Object: allJobs,
+      PageNumber: page,
+      PageSize: pageSize,
+      TotalSize: total[0].count,
+      Errors: null,
     };
   }
 }

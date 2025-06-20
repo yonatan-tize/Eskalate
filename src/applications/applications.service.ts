@@ -29,10 +29,18 @@ export class ApplicationsService {
       .insert(applications)
       .values({ ...createApplicationDto, applicantId, status: 'Applied' })
       .returning();
-    return newApplication[0];
+    return {
+      Success: true,
+      Message: 'Application created successfully.',
+      Object: newApplication[0],
+      Errors: null,
+    };
   }
 
-  async findMyApplications(applicantId: string, { page = 1, pageSize = 10 }: FindApplicationsDto) {
+  async findMyApplications(
+    applicantId: string,
+    { page = 1, pageSize = 10 }: FindApplicationsDto,
+  ) {
     const offset = (page - 1) * pageSize;
     const myApplications = await this.db
       .select({
@@ -54,14 +62,21 @@ export class ApplicationsService {
       .where(eq(applications.applicantId, applicantId));
 
     return {
-      page,
-      pageSize,
-      total: total[0].count,
-      data: myApplications,
+      Success: true,
+      Message: 'Applications retrieved successfully.',
+      Object: myApplications,
+      PageNumber: page,
+      PageSize: pageSize,
+      TotalSize: total[0].count,
+      Errors: null,
     };
   }
 
-  async findJobApplications(jobId: string, userId: string, { page = 1, pageSize = 10 }: FindApplicationsDto) {
+  async findJobApplications(
+    jobId: string,
+    userId: string,
+    { page = 1, pageSize = 10 }: FindApplicationsDto,
+  ) {
     const job = await this.db.select().from(jobs).where(eq(jobs.id, jobId));
     if (!job.length) {
       throw new NotFoundException('Job not found');
@@ -91,14 +106,21 @@ export class ApplicationsService {
       .where(eq(applications.jobId, jobId));
 
     return {
-      page,
-      pageSize,
-      total: total[0].count,
-      data: jobApplications,
+      Success: true,
+      Message: 'Job applications retrieved successfully.',
+      Object: jobApplications,
+      PageNumber: page,
+      PageSize: pageSize,
+      TotalSize: total[0].count,
+      Errors: null,
     };
   }
 
-  async updateStatus(id: string, { status }: UpdateApplicationDto, userId: string) {
+  async updateStatus(
+    id: string,
+    { status }: UpdateApplicationDto,
+    userId: string,
+  ) {
     const application = await this.db.select().from(applications).where(eq(applications.id, id));
     if (!application.length) {
       throw new NotFoundException('Application not found');
@@ -115,6 +137,11 @@ export class ApplicationsService {
       .where(eq(applications.id, id))
       .returning();
 
-    return updatedApplication[0];
+    return {
+      Success: true,
+      Message: 'Application status updated successfully.',
+      Object: updatedApplication[0],
+      Errors: null,
+    };
   }
 }
